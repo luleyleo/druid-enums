@@ -41,7 +41,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
     let widget_added_checks = input.variants.iter().map(|variant| {
         let builder_name = variant.resolve_builder_name();
         quote! {
-            if self.#builder_name.is_none() {
+            if self.default_.is_none() && self.#builder_name.is_none() {
                 ::log::warn!("{}::{} variant of {:?} has not been set.", stringify!(#matcher_name), stringify!(#builder_name), ctx.widget_id());
             }
         }
@@ -113,6 +113,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
 
         struct #matcher_name {
             #(#struct_fields,)*
+            default_: Option<Box<dyn ::druid::Widget<#enum_name>>>,
             discriminant_: Option<::std::mem::Discriminant<#enum_name>>,
         }
 
@@ -120,8 +121,17 @@ pub fn derive(input: TokenStream) -> TokenStream {
             fn new() -> Self {
                 Self {
                     #(#struct_defaults,)*
+                    default_: None,
                     discriminant_: None,
                 }
+            }
+            fn default(mut self, widget: impl ::druid::Widget<#enum_name> + 'static) -> Self {
+                self.default_ = Some(Box::new(widget));
+                self
+            }
+            fn default_empty(mut self) -> Self {
+                self.default_ = Some(Box::new(::druid::widget::SizedBox::empty()));
+                self
             }
             #(#builder_fns)*
         }
