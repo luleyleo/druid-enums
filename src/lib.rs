@@ -38,6 +38,15 @@ pub fn derive(input: TokenStream) -> TokenStream {
         }
     });
 
+    let widget_added_checks = input.variants.iter().map(|variant| {
+        let builder_name = variant.resolve_builder_name();
+        quote! {
+            if self.#builder_name.is_none() {
+                ::log::warn!("{}::{} variant of {:?} has not been set.", stringify!(#matcher_name), stringify!(#builder_name), ctx.widget_id());
+            }
+        }
+    });
+
     let event_match = input.variants.iter().map(|variant| {
         let builder_name = variant.resolve_builder_name();
         let variant_name = &variant.name;
@@ -140,6 +149,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
             ) {
                 if let ::druid::LifeCycle::WidgetAdded = event {
                     self.discriminant_ = Some(::std::mem::discriminant(data));
+                    #(#widget_added_checks)*
                 }
                 match data {
                     #(#lifecycle_match)*
