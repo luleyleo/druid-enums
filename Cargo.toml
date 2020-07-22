@@ -8,9 +8,9 @@ edition = "2018"
 proc-macro = true
 
 [dependencies]
-syn = { version = "1.0.29", features = [] }
-quote = "1.0.6"
-proc-macro2 = "1.0.17"
+syn = "1.0.35"
+quote = "1.0.7"
+proc-macro2 = "1.0.19"
 heck = "0.3.1"
 
 [dev-dependencies]
