@@ -32,7 +32,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
         let builder_name = variant.resolve_builder_name();
         let variant_ty = &variant.field.ty;
         quote! {
-            fn #builder_name(mut self, widget: impl ::druid::Widget<#variant_ty> + 'static) -> Self {
+            pub fn #builder_name(mut self, widget: impl ::druid::Widget<#variant_ty> + 'static) -> Self {
                 self.#builder_name = Some(Box::new(widget));
                 self
             }
@@ -119,18 +119,18 @@ pub fn derive(input: TokenStream) -> TokenStream {
         }
 
         impl #matcher_name {
-            fn new() -> Self {
+            pub fn new() -> Self {
                 Self {
                     #(#struct_defaults,)*
                     default_: None,
                     discriminant_: None,
                 }
             }
-            fn default(mut self, widget: impl ::druid::Widget<#enum_name> + 'static) -> Self {
+            pub fn default(mut self, widget: impl ::druid::Widget<#enum_name> + 'static) -> Self {
                 self.default_ = Some(Box::new(widget));
                 self
             }
-            fn default_empty(mut self) -> Self {
+            pub fn default_empty(mut self) -> Self {
                 self.default_ = Some(Box::new(::druid::widget::SizedBox::empty()));
                 self
             }
