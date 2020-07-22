@@ -1,4 +1,6 @@
-use match_derive::Matcher;
+#![allow(dead_code)]
+
+use druid_enums::Matcher;
 
 #[derive(Matcher)]
 #[matcher(matcher_name = App)]
