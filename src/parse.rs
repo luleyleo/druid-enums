@@ -192,13 +192,11 @@ impl Iterator for ProcessAttrs {
     type Item = Result<MatcherAttr>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.next_part() {
-            Some(matcher_attr) => return Some(Ok(matcher_attr)),
-            None => (), // carry on
+        if let Some(matcher_attr) = self.next_part() {
+            return Some(Ok(matcher_attr));
         }
-        match self.load_parts() {
-            Ok(()) => (), // carry on
-            Err(e) => return Some(Err(e)),
+        if let Err(e) = self.load_parts() {
+            return Some(Err(e));
         }
         self.next_part().map(Ok)
     }
@@ -213,7 +211,7 @@ fn matches_path(p: &Path) -> bool {
         Some(s) => s,
         None => return false,
     };
-    segment.ident.to_string() == "matcher" && segment.arguments.is_empty()
+    segment.ident == "matcher" && segment.arguments.is_empty()
 }
 
 fn iter_get_one<T, I: IntoIterator<Item = T>>(iter: I) -> Option<T> {
