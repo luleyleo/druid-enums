@@ -125,8 +125,10 @@ pub fn derive(input: TokenStream) -> TokenStream {
                 data: &mut #enum_name,
                 env: &::druid::Env
             ) {
-                match data {
-                    #(#event_match)*
+                if self.discriminant_ == Some(::std::mem::discriminant(data)) {
+                    match data {
+                        #(#event_match)*
+                    }
                 }
             }
             fn lifecycle(
