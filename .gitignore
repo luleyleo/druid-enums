@@ -1,0 +1,7 @@
+# Rust files
+/target
+Cargo.lock
+
+# IDE files
+.idea
+.vscode

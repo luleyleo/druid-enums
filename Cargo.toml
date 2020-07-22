@@ -1,0 +1,17 @@
+[package]
+name = "druid-enums"
+version = "0.1.0"
+authors = ["Leopold Luley <git@leopoldluley.de>"]
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = { version = "1.0.29", features = [] }
+quote = "1.0.6"
+proc-macro2 = "1.0.17"
+heck = "0.3.1"
+
+[dev-dependencies]
+druid = "0.6.0"
