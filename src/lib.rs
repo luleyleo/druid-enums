@@ -13,6 +13,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
     // TODO handle generics in the input
     let input = parse_macro_input!(input as MatcherDerive);
 
+    let visibility = &input.visibility;
     let enum_name = &input.enum_name;
     let matcher_name = input.resolve_matcher_name();
 
@@ -111,7 +112,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
             }
         }
 
-        struct #matcher_name {
+        #visibility struct #matcher_name {
             #(#struct_fields,)*
             default_: Option<Box<dyn ::druid::Widget<#enum_name>>>,
             discriminant_: Option<::std::mem::Discriminant<#enum_name>>,

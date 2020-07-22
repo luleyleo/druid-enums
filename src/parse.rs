@@ -4,11 +4,12 @@ use syn::{
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
     Attribute, Data, DataStruct, DataUnion, DeriveInput, Error, Field, Fields, FieldsUnnamed,
-    Generics, Ident, Path, Result, Token,
+    Generics, Ident, Path, Result, Token, Visibility,
 };
 
 pub struct MatcherDerive {
     pub enum_name: Ident,
+    pub visibility: Visibility,
     pub matcher_name: Option<Ident>,
     pub generics: Generics,
     pub variants: Vec<MatcherVariant>,
@@ -27,6 +28,7 @@ impl Parse for MatcherDerive {
     fn parse(input: ParseStream) -> Result<Self> {
         let input: DeriveInput = input.parse()?;
         let enum_name = input.ident;
+        let visibility = input.vis;
         let generics = input.generics;
         let data = match input.data {
             Data::Enum(data) => Ok(data),
@@ -62,6 +64,7 @@ impl Parse for MatcherDerive {
         }
         Ok(MatcherDerive {
             enum_name,
+            visibility,
             matcher_name,
             generics,
             variants,
