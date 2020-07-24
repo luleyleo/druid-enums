@@ -1,13 +1,12 @@
-use proc_macro::TokenStream;
-use quote::quote;
-use syn::parse_macro_input;
+use proc_macro2::TokenStream;
+use quote::{format_ident, quote};
+use syn::{parse_macro_input, Fields};
 
 mod parse;
-
-use parse::MatcherDerive;
+use parse::{MatcherDerive, MatcherVariant};
 
 #[proc_macro_derive(Matcher, attributes(matcher))]
-pub fn derive(input: TokenStream) -> TokenStream {
+pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // TODO when we generate a name that isn't a valid ident or is a keyword, generate a different
     // name rather than panicking.
     // TODO handle generics in the input
@@ -17,9 +16,40 @@ pub fn derive(input: TokenStream) -> TokenStream {
     let enum_name = &input.enum_name;
     let matcher_name = input.resolve_matcher_name();
 
+    // Returns the `T` in `Widget<T>` for the variant.
+    fn type_of(variant: &MatcherVariant) -> TokenStream {
+        match &variant.fields {
+            Fields::Unit => quote!(()),
+            Fields::Unnamed(fields) if fields.unnamed.is_empty() => quote!(()),
+            Fields::Unnamed(fields) => {
+                let types = fields.unnamed.iter().map(|f| &f.ty);
+                quote!((#(#types),*))
+            }
+            Fields::Named(_) => unreachable!(),
+        }
+    }
+
+    // Returns (pattern to match for, `data` param for the widget).
+    fn data_of(variant: &MatcherVariant, prefix: &str) -> (TokenStream, TokenStream) {
+        match &variant.fields {
+            Fields::Unit => (quote!(), quote!(&mut ())),
+            Fields::Unnamed(fields) if fields.unnamed.is_empty() => (quote!(()), quote!(&mut ())),
+            Fields::Unnamed(fields) => {
+                let names: Vec<syn::Ident> = fields
+                    .unnamed
+                    .iter()
+                    .enumerate()
+                    .map(|(i, _)| format_ident!("{}p{}", prefix, i))
+                    .collect();
+                (quote!((#(#names),*)), quote!((#(#names),*)))
+            }
+            Fields::Named(_) => unreachable!(),
+        }
+    }
+
     let struct_fields = input.variants.iter().map(|variant| {
         let builder_name = variant.resolve_builder_name();
-        let variant_ty = &variant.field.ty;
+        let variant_ty = type_of(&variant);
         quote!(#builder_name: Option<Box<dyn ::druid::Widget<#variant_ty>>>)
     });
 
@@ -30,7 +60,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
 
     let builder_fns = input.variants.iter().map(|variant| {
         let builder_name = variant.resolve_builder_name();
-        let variant_ty = &variant.field.ty;
+        let variant_ty = type_of(&variant);
         quote! {
             pub fn #builder_name(mut self, widget: impl ::druid::Widget<#variant_ty> + 'static) -> Self {
                 self.#builder_name = Some(Box::new(widget));
@@ -51,9 +81,10 @@ pub fn derive(input: TokenStream) -> TokenStream {
     let event_match = input.variants.iter().map(|variant| {
         let builder_name = variant.resolve_builder_name();
         let variant_name = &variant.name;
+        let (data_pattern, data_values) = data_of(&variant, "");
         quote! {
-            #enum_name::#variant_name(inner) => match &mut self.#builder_name {
-                Some(widget) => widget.event(ctx, event, inner, env),
+            #enum_name::#variant_name #data_pattern => match &mut self.#builder_name {
+                Some(widget) => widget.event(ctx, event, #data_values, env),
                 None => (),
             }
         }
@@ -62,9 +93,10 @@ pub fn derive(input: TokenStream) -> TokenStream {
     let lifecycle_match = input.variants.iter().map(|variant| {
         let builder_name = variant.resolve_builder_name();
         let variant_name = &variant.name;
+        let (data_pattern, data_values) = data_of(&variant, "");
         quote! {
-            #enum_name::#variant_name(inner) => match &mut self.#builder_name {
-                Some(widget) => widget.lifecycle(ctx, event, inner, env),
+            #enum_name::#variant_name #data_pattern => match &mut self.#builder_name {
+                Some(widget) => widget.lifecycle(ctx, event, #data_values, env),
                 None => (),
             }
         }
@@ -73,10 +105,12 @@ pub fn derive(input: TokenStream) -> TokenStream {
     let update_match = input.variants.iter().map(|variant| {
         let builder_name = variant.resolve_builder_name();
         let variant_name = &variant.name;
+        let (old_data_pattern, old_data_values) = data_of(&variant, "old_");
+        let (data_pattern, data_values) = data_of(&variant, "");
         quote! {
-            (#enum_name::#variant_name(old_inner), #enum_name::#variant_name(inner)) => {
+            (#enum_name::#variant_name #old_data_pattern, #enum_name::#variant_name #data_pattern) => {
                 match &mut self.#builder_name {
-                    Some(widget) => widget.update(ctx, old_inner, inner, env),
+                    Some(widget) => widget.update(ctx, #old_data_values, #data_values, env),
                     None => (),
                 }
             }
@@ -86,9 +120,10 @@ pub fn derive(input: TokenStream) -> TokenStream {
     let layout_match = input.variants.iter().map(|variant| {
         let builder_name = variant.resolve_builder_name();
         let variant_name = &variant.name;
+        let (data_pattern, data_values) = data_of(&variant, "");
         quote! {
-            #enum_name::#variant_name(inner) => match &mut self.#builder_name {
-                Some(widget) => widget.layout(ctx, bc, inner, env),
+            #enum_name::#variant_name #data_pattern => match &mut self.#builder_name {
+                Some(widget) => widget.layout(ctx, bc, #data_values, env),
                 None => bc.min(),
             }
         }
@@ -97,9 +132,10 @@ pub fn derive(input: TokenStream) -> TokenStream {
     let paint_match = input.variants.iter().map(|variant| {
         let builder_name = variant.resolve_builder_name();
         let variant_name = &variant.name;
+        let (data_pattern, data_values) = data_of(&variant, "");
         quote! {
-            #enum_name::#variant_name(inner) => match &mut self.#builder_name {
-                Some(widget) => widget.paint(ctx, inner, env),
+            #enum_name::#variant_name #data_pattern => match &mut self.#builder_name {
+                Some(widget) => widget.paint(ctx, #data_values, env),
                 None => (),
             }
         }

@@ -3,8 +3,8 @@ use proc_macro2::Span;
 use syn::{
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
-    Attribute, Data, DataStruct, DataUnion, DeriveInput, Error, Field, Fields, FieldsUnnamed,
-    Generics, Ident, Path, Result, Token, Visibility,
+    Attribute, Data, DataStruct, DataUnion, DeriveInput, Error, Fields, Generics, Ident, Path,
+    Result, Token, Visibility,
 };
 
 pub struct MatcherDerive {
@@ -48,18 +48,14 @@ impl Parse for MatcherDerive {
         for variant in data.variants {
             let variant_name = variant.ident;
             let name_span = variant_name.span();
-            let field = match variant.fields {
-                Fields::Unnamed(FieldsUnnamed { unnamed, .. }) => match iter_get_one(unnamed) {
-                    Some(f) => f,
-                    None => return variant_error(name_span),
-                },
-                _ => return variant_error(name_span),
-            };
+            if let Fields::Named(_) = variant.fields {
+                return variant_error(name_span);
+            }
             let attrs = VariantAttrs::parse(variant.attrs)?;
             variants.push(MatcherVariant {
                 builder_name: attrs.builder_name,
                 name: variant_name,
-                field,
+                fields: variant.fields,
             });
         }
         Ok(MatcherDerive {
@@ -79,14 +75,14 @@ fn enum_error<T>(span: Span) -> Result<T> {
 fn variant_error<T>(span: Span) -> Result<T> {
     Err(Error::new(
         span,
-        "the variant's data must be a single unnamed field",
+        "only unit and tuple variants are supported",
     ))
 }
 
 pub struct MatcherVariant {
     pub builder_name: Option<Ident>,
     pub name: Ident,
-    pub field: Field,
+    pub fields: Fields,
 }
 
 impl MatcherVariant {
