@@ -1,8 +1,14 @@
 [package]
 name = "druid-enums"
 version = "0.1.0"
-authors = ["Leopold Luley <git@leopoldluley.de>"]
 edition = "2018"
+authors = ["Leopold Luley <git@leopoldluley.de>"]
+description = "Allows matching a druid::Widget to each variant of an enum."
+keywords = ["druid", "derive", "enum", "gui"]
+categories = ["gui"]
+repository = "https://github.com/finnerale/druid-enums"
+readme = "README.md"
+license = "MIT"
 
 [lib]
 proc-macro = true
