@@ -50,7 +50,7 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let struct_fields = input.variants.iter().map(|variant| {
         let builder_name = variant.resolve_builder_name();
         let variant_ty = type_of(&variant);
-        quote!(#builder_name: Option<Box<dyn ::druid::Widget<#variant_ty>>>)
+        quote!(#builder_name: Option<::druid::WidgetPod<#variant_ty, Box<dyn ::druid::Widget<#variant_ty>>>>)
     });
 
     let struct_defaults = input.variants.iter().map(|variant| {
@@ -63,7 +63,7 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         let variant_ty = type_of(&variant);
         quote! {
             pub fn #builder_name(mut self, widget: impl ::druid::Widget<#variant_ty> + 'static) -> Self {
-                self.#builder_name = Some(Box::new(widget));
+                self.#builder_name = Some(::druid::WidgetPod::new(Box::new(widget)));
                 self
             }
         }
@@ -105,12 +105,12 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let update_match = input.variants.iter().map(|variant| {
         let builder_name = variant.resolve_builder_name();
         let variant_name = &variant.name;
-        let (old_data_pattern, old_data_values) = data_of(&variant, "old_");
+        let (old_data_pattern, _old_data_values) = data_of(&variant, "old_");
         let (data_pattern, data_values) = data_of(&variant, "");
         quote! {
             (#enum_name::#variant_name #old_data_pattern, #enum_name::#variant_name #data_pattern) => {
                 match &mut self.#builder_name {
-                    Some(widget) => widget.update(ctx, #old_data_values, #data_values, env),
+                    Some(widget) => widget.update(ctx, #data_values, env),
                     None => (),
                 }
             }
@@ -123,7 +123,11 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         let (data_pattern, data_values) = data_of(&variant, "");
         quote! {
             #enum_name::#variant_name #data_pattern => match &mut self.#builder_name {
-                Some(widget) => widget.layout(ctx, bc, #data_values, env),
+                Some(widget) => {
+                    let size = widget.layout(ctx, bc, #data_values, env);
+                    widget.set_layout_rect(ctx, #data_values, env, size.to_rect());
+                    size
+                },
                 None => bc.min(),
             }
         }
