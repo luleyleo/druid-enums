@@ -194,8 +194,8 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 data: &#enum_name,
                 env: &::druid::Env
             ) {
+                self.discriminant_ = Some(::std::mem::discriminant(data));
                 if let ::druid::LifeCycle::WidgetAdded = event {
-                    self.discriminant_ = Some(::std::mem::discriminant(data));
                     #(#widget_added_checks)*
                 }
                 match data {
@@ -212,7 +212,6 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                     #(#update_match)*
                     _ => {
                         ctx.children_changed();
-                        self.discriminant_ = Some(::std::mem::discriminant(data));
                     }
                 }
             }
