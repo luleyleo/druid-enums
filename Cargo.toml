@@ -21,4 +21,4 @@ quote = "1.0.7"
 syn = "1.0.35"
 
 [dev-dependencies]
-druid = "0.6.0"
+druid = "0.7.0"
