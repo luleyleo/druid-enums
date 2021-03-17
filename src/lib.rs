@@ -117,6 +117,23 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         }
     });
 
+    let variant_update_match = input.variants.iter().map(|variant| {
+        let builder_name = variant.resolve_builder_name();
+        let variant_name = &variant.name;
+        let (data_pattern, data_values) = data_of(&variant, "");
+        quote! {
+            (_, #enum_name::#variant_name #data_pattern) => {
+                match &mut self.#builder_name {
+                    Some(widget) => match widget.is_initialized() {
+                        true => widget.update(ctx, #data_values, env),
+                        false => ctx.children_changed(),
+                    },
+                    None => (),
+                }
+            }
+        }
+    });
+
     let layout_match = input.variants.iter().map(|variant| {
         let builder_name = variant.resolve_builder_name();
         let variant_name = &variant.name;
@@ -214,8 +231,9 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             ) {
                 match (old_data, data) {
                     #(#update_match)*
+                    #(#variant_update_match)*
                     _ => {
-                        ctx.children_changed();
+                        unreachable!("Some variant is missing");
                     }
                 }
             }

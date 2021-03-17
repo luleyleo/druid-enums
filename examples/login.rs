@@ -43,7 +43,7 @@ fn ui() -> impl Widget<AppState> {
 
 fn login_ui() -> impl Widget<LoginState> {
     fn login(ctx: &mut EventCtx, state: &mut LoginState, _: &Env) {
-        ctx.submit_command(LOGIN.with(MainState::from(state.clone())), None)
+        ctx.submit_command(LOGIN.with(MainState::from(state.clone())))
     }
 
     Flex::row()
