@@ -123,7 +123,7 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         let (data_pattern, data_values) = data_of(&variant, "");
         quote! {
             (_, #enum_name::#variant_name #data_pattern) => {
-                ctx.request_paint();
+                ctx.request_layout();
                 match &mut self.#builder_name {
                     Some(widget) => match widget.is_initialized() {
                         true => widget.update(ctx, #data_values, env),
