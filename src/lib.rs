@@ -124,6 +124,7 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         quote! {
             (_, #enum_name::#variant_name #data_pattern) => {
                 match &mut self.#builder_name {
+                    ctx.request_paint();
                      Some(widget) => match widget.is_initialized() {
                         true => widget.update(ctx, #data_values, env),
                         false => ctx.children_changed(),
