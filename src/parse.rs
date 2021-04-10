@@ -3,6 +3,7 @@ use proc_macro2::Span;
 use syn::{
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
+    spanned::Spanned,
     Attribute, Data, DataStruct, DataUnion, DeriveInput, Error, Fields, Generics, Ident, Path,
     Result, Token, Visibility,
 };
@@ -48,10 +49,8 @@ impl Parse for MatcherDerive {
         for variant in data.variants {
             let variant_name = variant.ident;
             let name_span = variant_name.span();
-            if let Fields::Named(_) = variant.fields {
-                return variant_error(name_span);
-            }
             let attrs = VariantAttrs::parse(variant.attrs)?;
+            check_less_2(&variant.fields)?;
             variants.push(MatcherVariant {
                 builder_name: attrs.builder_name,
                 name: variant_name,
@@ -140,7 +139,10 @@ impl Parse for MatcherAttr {
             }
             other => Err(Error::new(
                 name_span,
-                format!("expected `builder_name`, found `{}`", other),
+                format!(
+                    "expected one of `builder_name`, `matcher_name`, found `{}`",
+                    other
+                ),
             )),
         }
     }
@@ -225,4 +227,27 @@ fn iter_get_one<T, I: IntoIterator<Item = T>>(iter: I) -> Option<T> {
 fn snakify(input: &Ident) -> Ident {
     let new_name = input.to_string().to_snake_case();
     Ident::new(&new_name, input.span())
+}
+
+fn check_less_2(fields: &Fields) -> Result<()> {
+    fn err(span: Span) -> Error {
+        Error::new(span, "`Matcher` variants must have a maximum of 1 field")
+    }
+    match fields {
+        Fields::Named(fields) => {
+            if fields.named.iter().count() < 2 {
+                Ok(())
+            } else {
+                Err(err(fields.named.span()))
+            }
+        }
+        Fields::Unnamed(fields) => {
+            if fields.unnamed.iter().count() < 2 {
+                Ok(())
+            } else {
+                Err(err(fields.unnamed.span()))
+            }
+        }
+        Fields::Unit => Ok(()),
+    }
 }

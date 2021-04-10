@@ -25,7 +25,10 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 let types = fields.unnamed.iter().map(|f| &f.ty);
                 quote!((#(#types),*))
             }
-            Fields::Named(_) => unreachable!(),
+            Fields::Named(fields) => {
+                let types = fields.named.iter().map(|f| &f.ty);
+                quote!((#(#types),*))
+            }
         }
     }
 
@@ -43,7 +46,25 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                     .collect();
                 (quote!((#(#names),*)), quote!((#(#names),*)))
             }
-            Fields::Named(_) => unreachable!(),
+            Fields::Named(fields) if fields.named.is_empty() => (quote!(()), quote!(&mut ())),
+            Fields::Named(fields) => {
+                let names: Vec<syn::Ident> = fields
+                    .named
+                    .iter()
+                    .enumerate()
+                    .map(|(_, field)| field.ident.clone().unwrap())
+                    .collect();
+                let our_names: Vec<syn::Ident> = fields
+                    .named
+                    .iter()
+                    .enumerate()
+                    .map(|(i, _)| format_ident!("{}p{}", prefix, i))
+                    .collect();
+                let variant_fields = quote!(
+                    { #(#names: #our_names),* }
+                );
+                (variant_fields, quote!((#(#our_names),*)))
+            }
         }
     }
 

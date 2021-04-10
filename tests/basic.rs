@@ -11,7 +11,7 @@ struct B;
 #[derive(Clone, Data, Matcher)]
 enum AB {
     A(A),
-    B(B),
+    B { b: B },
 }
 
 #[test]
@@ -47,3 +47,19 @@ fn generated_matcher_name() {
         .a(SizedBox::<A>::empty())
         .b(SizedBox::<B>::empty());
 }
+
+/*
+// This won't work unless the parsing is split into a separate crate.
+
+const PARSE_FAIL: &'static str = "
+#[derive(Clone, Data, Matcher)]
+enum C {
+    C(A, B),
+}
+";
+
+#[test]
+fn multiple_fields() {
+    assert!(syn::parse_str::<druid_enums::parse::MatcherDerive>(PARSE_FAIL).is_err());
+}
+*/
